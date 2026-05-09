@@ -9,7 +9,7 @@ spec:
     server: https://kubernetes.default.svc
   source:
     path: overlays/dev
-    repoURL: https://github.com/StoreMyProjects/flask-postgresql-app
+    repoURL: https://github.com/StoreMyProjects/flask-postgresql-app-gitops
     targetRevision: HEAD
   sources: []
   project: default

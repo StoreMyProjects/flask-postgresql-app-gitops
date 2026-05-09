@@ -4,8 +4,8 @@ metadata:
   name: two-tier-app-hpa
 spec:
   scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
     name: two-tier-app
 
   minReplicas: 1

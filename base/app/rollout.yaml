@@ -15,6 +15,12 @@ spec:
         alb:
           ingress: two-tier-app-ingress
           servicePort: 80
+      analysis:
+        templates:
+          - templateName: pod-health-check
+        args:
+          - name: namespace
+            value: dev
       steps:
         - setWeight: 10
         - pause:

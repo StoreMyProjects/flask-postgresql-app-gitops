@@ -5,5 +5,6 @@ resources:
   - dev-ns.yaml
   - app
   - db
+  - rollouts
 
 namespace: dev

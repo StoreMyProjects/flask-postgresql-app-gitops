@@ -11,6 +11,8 @@ metadata:
     alb.ingress.kubernetes.io/ssl-redirect: "443"
 
     alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/actions.root-service: >
+     {"type":"forward","forwardConfig":{"targetGroups":[]}}
 spec:
   ingressClassName: alb
   rules:
@@ -21,6 +23,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: two-tier-app-service
+                name: two-tier-app-stable
                 port:
                   number: 80

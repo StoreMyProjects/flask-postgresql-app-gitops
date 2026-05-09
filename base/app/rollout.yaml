@@ -1,11 +1,28 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: two-tier-app
+  namespace: dev
   labels:
     app: two-tier-app
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    canary:
+      stableService: two-tier-app-stable
+      canaryService: two-tier-app-canary
+      trafficRouting:
+        alb:
+          ingress: two-tier-app-ingress
+          servicePort: 80
+      steps:
+        - setWeight: 10
+        - pause:
+            duration: 30s
+        - setWeight: 50
+        - pause:
+            duration: 60s
+        - setWeight: 100
   selector:
     matchLabels:
       app: two-tier-app

@@ -6,7 +6,7 @@ resources:
 
 images:
   - name: 140858350811.dkr.ecr.ap-south-1.amazonaws.com/exploreexpeditionsapp
-    newTag: v1.0.0
+    newTag: v1.0.29-dev
 
 replicas:
   - name: two-tier-app

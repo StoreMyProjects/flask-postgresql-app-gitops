@@ -13,7 +13,6 @@ spec:
     path: overlays/dev
     repoURL: https://github.com/StoreMyProjects/flask-postgresql-app-gitops
     targetRevision: HEAD
-  sources: []
   project: default
   syncPolicy:
     automated:

@@ -1,15 +1,16 @@
 # Flask PostgreSQL App GitOps
 
-A GitOps-based deployment infrastructure for a Flask application with PostgreSQL database using ArgoCD, Kustomize, and Argo Rollouts.
+A GitOps-based deployment infrastructure for a Flask application with PostgreSQL database using ArgoCD, Kustomize, and Argo Rollouts. DNS records are automatically managed by external-dns.
 
 ## Repository Structure
 
 ```
 flask-postgresql-app-gitops/
-├── apps/                          # ArgoCD Applications
-│   ├── root.yaml                 # Root application (deploys everything)
-│   └── app.yaml                  # Flask app application
-├── base/                          # Kustomize base configurations
+├── bootstrap-app/                 # Bootstrap entry point
+│   └── root.yaml                 # Root application (syncs from app-of-apps)
+├── app-of-apps/                  # App of apps pattern
+│   └── parent-app.yaml           # Parent application (manages child apps)
+├── base/                         # Kustomize base configurations
 │   ├── app/                      # Flask application manifests
 │   │   ├── rollout.yaml          # Argo Rollout with canary strategy
 │   │   ├── service.yaml          # Stable and canary services
@@ -33,7 +34,7 @@ flask-postgresql-app-gitops/
 │   │   ├── analysis-template.yaml # Health check analysis
 │   │   └── kustomization.yaml    # Kustomize file for rollouts
 │   └── kustomization.yaml        # Root kustomization file
-└── overlays/                      # Environment-specific configurations
+└── overlays/                     # Environment-specific configurations
     ├── dev/                      # Development environment
     │   ├── kustomization.yaml
     │   ├── dev-ns.yaml           # Development namespace
@@ -51,9 +52,11 @@ flask-postgresql-app-gitops/
 
 - AWS EKS cluster
 - ArgoCD installed (via Terraform scripts from separate repo)
+- external-dns installed on EKS cluster
 - kubectl configured
 - Custom domain registered
 - ACM certificate created in AWS
+- Route 53 hosted zone configured
 
 ## Quick Start
 
@@ -62,16 +65,19 @@ flask-postgresql-app-gitops/
 Deploy the entire infrastructure with a single command:
 
 ```bash
-kubectl apply -f apps/root.yaml
+kubectl apply -f bootstrap-app/root.yaml
 ```
 
 This deploys:
+- Root application (from bootstrap-app)
+- Parent application (from app-of-apps)
 - PostgreSQL database with persistent storage
 - Flask application with canary rollouts
 - RBAC configuration
 - Secrets and ConfigMaps
-- Ingress, HPA, PDB
-- Analysis templates for health checks
+- Ingress with ACM certificate
+- HPA, PDB, and Analysis templates
+- DNS records (automatically created by external-dns)
 
 ### 2. Verify Deployment
 
@@ -80,6 +86,12 @@ Check root application status:
 ```bash
 kubectl get applications -n argocd
 kubectl describe application root-app -n argocd
+```
+
+Check parent application:
+
+```bash
+kubectl describe application flask-app -n argocd
 ```
 
 Check application pods:
@@ -96,38 +108,36 @@ kubectl get svc -n dev
 kubectl get svc -n default
 ```
 
-### 3. Configure Custom Domain
-
-#### Option A: Using Route 53
-
-1. Open AWS Route 53 console
-2. Select your hosted zone
-3. Create CNAME record:
-   - **Name**: `your-custom-domain.com`
-   - **Type**: CNAME
-   - **Value**: ALB DNS name (get from ingress)
-   - **TTL**: 300
-
-#### Option B: Using Other DNS Providers
-
-Create CNAME record pointing to ALB DNS name:
-
-```
-Name:   your-custom-domain.com
-Type:   CNAME
-Value:  k8s-dev-twotier-xxxxx-1234567890.ap-south-1.elb.amazonaws.com
-TTL:    300
-```
-
-Get ALB DNS name:
+Check ingress:
 
 ```bash
-kubectl get ingress two-tier-app-ingress
+kubectl get ingress
+kubectl describe ingress two-tier-app-ingress
 ```
+
+### 3. Verify DNS Records
+
+external-dns automatically creates DNS records in Route 53 based on ingress definitions.
+
+Verify DNS record was created:
+
+```bash
+# Check Route 53
+aws route53 list-resource-record-sets --hosted-zone-id <zone-id>
+
+# Test DNS resolution
+nslookup your-custom-domain.com
+dig your-custom-domain.com
+
+# Verify from within cluster
+kubectl run -it --rm debug --image=alpine -- nslookup your-custom-domain.com
+```
+
+Wait for DNS propagation (can take a few minutes).
 
 ### 4. Access Application
 
-Once DNS propagates:
+Once DNS is created and propagated:
 
 ```bash
 curl https://your-custom-domain.com
@@ -158,6 +168,8 @@ spec:
   rules:
     - host: your-custom-domain.com
 ```
+
+external-dns will automatically update Route 53 records when the ingress host changes.
 
 ### Modify Replica Count
 
@@ -198,14 +210,6 @@ resources:
     memory: "256Mi"
 ```
 
-## Deployment Strategy
-
-- **Canary Rollout**: 10% → 50% → 100% traffic shifting
-- **Health Checks**: Analysis templates for pod health validation
-- **Services**: Separate stable and canary services for traffic management
-- **Auto-scaling**: HPA scales based on CPU/memory metrics
-- **Pod Disruption Budget**: Ensures availability during cluster maintenance
-
 ## Environment Customization
 
 ### Development Environment
@@ -216,7 +220,7 @@ Overlays in `overlays/dev/` override base configurations for development.
 
 Overlays in `overlays/prod/` override base configurations for production.
 
-To switch environments, update `apps/app.yaml`:
+To switch environments, update `app-of-apps/parent-app.yaml`:
 
 ```yaml
 source:
@@ -228,6 +232,7 @@ source:
 ### Check ArgoCD Sync Status
 
 ```bash
+argocd app get root-app -n argocd
 argocd app get flask-app -n argocd
 ```
 
@@ -263,7 +268,44 @@ kubectl get analysisrun -n dev
 kubectl describe analysisrun <name> -n dev
 ```
 
+### Check external-dns Logs
+
+```bash
+kubectl logs -n kube-system -l app=external-dns -f
+```
+
+### Check DNS Records in Route 53
+
+```bash
+aws route53 list-resource-record-sets --hosted-zone-id <zone-id> --query "ResourceRecordSets[?Name=='your-custom-domain.com.']"
+```
+
 ## Troubleshooting
+
+### DNS Record Not Created
+
+Check external-dns logs:
+
+```bash
+kubectl logs -n kube-system -l app=external-dns
+```
+
+Ensure:
+- external-dns is running
+- Route 53 hosted zone is configured
+- Ingress has proper annotations
+
+### DNS Not Resolving
+
+```bash
+nslookup your-custom-domain.com
+dig your-custom-domain.com
+
+# Check from within cluster
+kubectl run -it --rm debug --image=alpine -- nslookup your-custom-domain.com
+```
+
+May take up to 5-10 minutes for DNS propagation.
 
 ### Ingress Not Showing IP Address
 
@@ -272,18 +314,11 @@ kubectl describe ingress two-tier-app-ingress
 kubectl get ingress two-tier-app-ingress -w
 ```
 
+Check ALB controller logs if ingress is not getting an address.
+
 ### Certificate Not Valid
 
 Verify ACM certificate ARN in `base/app/ingress.yaml` is correct.
-
-### DNS Not Resolving
-
-```bash
-nslookup your-custom-domain.com
-dig your-custom-domain.com
-```
-
-Verify CNAME record is created and DNS propagated (can take up to 48 hours).
 
 ### Application Pod Fails to Start
 
@@ -310,8 +345,8 @@ Check analysis template logs for health check failures.
 ### ArgoCD Sync Failures
 
 ```bash
-argocd app sync flask-app -n argocd
-argocd app logs flask-app -n argocd
+argocd app sync root-app -n argocd
+argocd app logs root-app -n argocd
 ```
 
 ## Updates & Rollbacks
@@ -356,6 +391,16 @@ The Terraform deployment handles:
 - Repository configuration
 - RBAC setup
 - Initial application registration
+- external-dns installation and configuration
+
+## DNS Management
+
+DNS records are managed automatically by external-dns:
+
+- **What it does**: Watches Kubernetes ingress resources and automatically creates/updates DNS records in Route 53
+- **Automatic**: No manual Route 53 updates needed
+- **Synced**: Deleting ingress will automatically remove DNS records
+- **Configuration**: external-dns is installed and configured via Terraform
 
 ## Support & Documentation
 
@@ -364,6 +409,7 @@ For additional information:
 - [Argo Rollouts Documentation](https://argoproj.github.io/argo-rollouts/)
 - [Kustomize Documentation](https://kustomize.io/)
 - [AWS ALB Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/)
+- [external-dns Documentation](https://github.com/kubernetes-sigs/external-dns)
 
 ## License
 

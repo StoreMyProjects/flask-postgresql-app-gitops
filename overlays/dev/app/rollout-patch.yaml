@@ -1,0 +1,13 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+
+metadata:
+  name: two-tier-app
+
+spec:
+  strategy:
+    canary:
+      analysis:
+        args:
+          - name: namespace
+            value: dev

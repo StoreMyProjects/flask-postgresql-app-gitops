@@ -2,7 +2,6 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   name: two-tier-app
-  namespace: dev
   labels:
     app: two-tier-app
 spec:
@@ -20,7 +19,7 @@ spec:
           - templateName: pod-health-check
         args:
           - name: namespace
-            value: dev
+            value: default
       steps:
         - setWeight: 10
         - pause:

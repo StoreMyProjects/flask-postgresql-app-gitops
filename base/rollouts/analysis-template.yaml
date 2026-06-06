@@ -23,7 +23,7 @@ spec:
             sum(
               increase(
                 kube_pod_container_status_restarts_total{
-                  namespace="{{args.namespace}}",
+                  namespace="default",
                   pod=~"two-tier-app.*"
                 }[2m]
               )

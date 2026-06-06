@@ -9,14 +9,14 @@ metadata:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:140858350811:certificate/b0f6a90a-cd9e-4962-ba25-c2ed93ee90c8
     alb.ingress.kubernetes.io/ssl-redirect: "443"
-    external-dns.alpha.kubernetes.io/hostname: app.testpro.in
+    external-dns.alpha.kubernetes.io/hostname: appdev.testpro.in
     alb.ingress.kubernetes.io/backend-protocol: HTTP
     alb.ingress.kubernetes.io/actions.root-service: >
      {"type":"forward","forwardConfig":{"targetGroups":[]}}
 spec:
   ingressClassName: alb
   rules:
-    - host: app.testpro.in
+    - host: appdev.testpro.in
       http:
         paths:
           - path: /

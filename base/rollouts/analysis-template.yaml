@@ -5,6 +5,8 @@ metadata:
   name: pod-health-check
 
 spec:
+  args:
+   - name: namespace
   metrics:
     - name: pod-restarts
 

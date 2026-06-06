@@ -6,15 +6,21 @@ metadata:
 
 spec:
   metrics:
-  - name: pod-restarts
-    provider:
-      prometheus:
-        query: |
-          sum(
-            increase(
-              kube_pod_container_status_restarts_total{
-                namespace="dev",
-                pod=~"two-tier-app.*"
-              }[2m]
+    - name: pod-restarts
+      interval: 30s
+      successCondition: result[0] < 1
+      failureLimit: 1
+
+      provider:
+        prometheus:
+          address: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090
+
+          query: |
+            sum(
+              increase(
+                kube_pod_container_status_restarts_total{
+                  namespace="dev",
+                  pod=~"two-tier-app.*"
+                }[2m]
+              )
             )
-          )

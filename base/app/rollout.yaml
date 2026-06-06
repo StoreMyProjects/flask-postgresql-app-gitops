@@ -17,9 +17,6 @@ spec:
       analysis:
         templates:
           - templateName: pod-health-check
-        args:
-          - name: namespace
-            value: default
       steps:
         - setWeight: 10
         - pause:

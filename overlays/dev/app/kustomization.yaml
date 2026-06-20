@@ -11,4 +11,4 @@ patches:
 
 images:
   - name: 140858350811.dkr.ecr.ap-south-1.amazonaws.com/exploreexpeditionsapp
-    newTag: v1.0.40-dev
+    newTag: v1.0.42-dev

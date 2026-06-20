@@ -6,6 +6,8 @@ resources:
   - role.yaml
   - rolebinding.yaml
   - secrets.yaml
+  - secret_store.yaml
+  - external_secret.yaml
   - configmap.yaml
   - rollout.yaml
   - service.yaml

@@ -73,13 +73,13 @@ spec:
               memory: "256Mi"
           readinessProbe:
             httpGet:
-              path: /
+              path: /healthy
               port: 5000
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /
+              path: /healthy
               port: 5000
             initialDelaySeconds: 15
             periodSeconds: 20

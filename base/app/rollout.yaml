@@ -71,6 +71,12 @@ spec:
             limits:
               cpu: "300m"
               memory: "256Mi"
+          startupProbe:
+            httpGet:
+              path: /healthy
+              port: 5000
+            periodSeconds: 5
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /healthy

@@ -34,6 +34,22 @@ spec:
         app: two-tier-app
     spec:
       serviceAccountName: two-tier-app-sa
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: two-tier-app
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app: two-tier-app
       containers:
         - name: two-tier-app
           image: 140858350811.dkr.ecr.ap-south-1.amazonaws.com/exploreexpeditionsapp:e934bd340458b6d8d51b392bf7d2f028ddb6d34d
